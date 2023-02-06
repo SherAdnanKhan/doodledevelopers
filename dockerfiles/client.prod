@@ -1,0 +1,41 @@
+FROM node:14.10.1-alpine
+
+# create destination directory
+RUN mkdir -p /usr/src/nuxt-app
+WORKDIR /usr/src/nuxt-app
+
+# update and install dependency
+RUN apk update && apk upgrade
+RUN apk add git
+RUN apk add openssh-client
+
+# copy in the red6 build chain sshkey so we can git pull the game-core and ui
+# Add ssh private key into container
+ARG SSH_PRIVATE_KEY
+RUN mkdir ~/.ssh/
+RUN echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+RUN chmod 600 ~/.ssh/id_rsa
+RUN ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts
+RUN echo "${SSH_PRIVATE_KEY}"
+
+# copy the app, note .dockerignore
+COPY src/client/ /usr/src/nuxt-app/
+COPY src/client/env.prod /usr/src/nuxt-app/.env
+RUN npm install \
+    npm update red6six-game-ui \
+    npm audit fix
+
+# build necessary, even if no static files are needed,
+# since it builds the server as well
+RUN npm run build
+
+# expose 5000 on container
+EXPOSE 3000
+
+# set app serving to permissive / assigned
+ENV NUXT_HOST=0.0.0.0
+# set app port
+ENV NUXT_PORT=3000
+
+# start the app
+CMD [ "npm", "start" ]

@@ -1,0 +1,11 @@
+mariadb_mirror: 'mariadb.mirror.nucleus.be/yum'
+mariadb_bind_address: '0.0.0.0'
+mariadb_root_password: 'root'
+mariadb_databases:
+   - name: oil_dev_db
+#     init_script: /etc/ansible/roles/role_under_test/docker-tests/init.sql
+mariadb_users:
+   - name: oil_dev_db
+     password: 'oil_dev_db'
+     priv: "oil_dev_db.*:ALL,GRANT"
+     host: "%"

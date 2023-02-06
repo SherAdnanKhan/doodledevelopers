@@ -1,0 +1,77 @@
+version: "3.7"
+services:
+
+  app:
+      build:
+        args:
+          user: sammy
+          uid: 1000
+        context: ./
+        dockerfile: ./dockerfiles/app.dev
+      image: red6six-api
+      container_name: red6six-api
+      restart: unless-stopped
+      working_dir: /var/www/
+      volumes:
+        - ./src:/var/www
+      networks:
+        - red6six-net
+
+  mysql1:
+    image: mariadb
+    container_name: red6six-db
+    restart: unless-stopped
+    ports:
+        - 3307:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: red6six_dev_db
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - red6six-net
+
+  mysql2:
+    image: mariadb
+    container_name: red6six-test-db
+    restart: unless-stopped
+    ports:
+        - 3308:3306
+    environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: red6six_test_db
+    volumes:
+        - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+        - red6six-net
+
+#  adminer:
+#    image: adminer
+#    restart: always
+#    ports:
+#      - 8080:8080
+
+
+  nginx:
+    image: nginx:1.17-alpine
+    container_name: red6six-nginx
+    restart: unless-stopped
+    ports:
+      - 8000:80
+    volumes:
+      - ./src:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d
+    networks:
+      - red6six-net
+    environment:
+# when traffic in the nginx-proxy for oil.doodlelabs.local is seen, send to this nginx container port 80
+      VIRTUAL_HOST: api.red6six.local
+
+#  webserver:
+#      image: jwilder/whoami
+#      environment:
+#        VIRTUAL_HOST: my-cool-app.localhost
+
+networks:
+  red6six-net:
+    driver: bridge

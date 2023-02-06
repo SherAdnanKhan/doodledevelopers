@@ -1,0 +1,13 @@
+diff --git a/src/Composer/Downloader/ArchiveDownloader.php b/src/Composer/Downloader/ArchiveDownloader.php
+index e525a1f77..9fc497af4 100644
+--- a/src/Composer/Downloader/ArchiveDownloader.php
++++ b/src/Composer/Downloader/ArchiveDownloader.php
+@@ -52,7 +52,7 @@ public function install(PackageInterface $package, $path, $output = true)
+         }
+
+         do {
+-            $temporaryDir = $vendorDir.'/composer/'.substr(md5(uniqid('', true)), 0, 8);
++            $temporaryDir = $vendorDir.'/composer/.tmp'.substr(md5(uniqid('', true)), 0, 8);
+         } while (is_dir($temporaryDir));
+
+         $this->addCleanupPath($package, $temporaryDir);

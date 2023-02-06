@@ -1,0 +1,84 @@
+-------------------------
+Setup your hosts file
+-------------------------
+127.0.0.1	api.red6six.local
+
+--------------------------------------------------------
+Generate the local certificates for api.red6six.local
+--------------------------------------------------------
+Note: this is done using gencerts - it will create a certificate and install it into your local CA
+
+-----
+cd docker-composer
+mkdir certs
+-----
+
+---------------
+Install mkcert
+---------------
+
+sudo apt-get update
+sudo apt install wget libnss3-tools
+export VER="v1.3.0"
+wget -O mkcert https://github.com/FiloSottile/mkcert/releases/download/${VER}/mkcert-${VER}-linux-amd64
+chmod +x  mkcert
+sudo mv mkcert /usr/local/bin
+
+---------
+
+cd contrl
+./gencerts
+
+Note: since this uses sudo to install the certs into your local CA your certs are now owned by root. You will need to manually change ownership back from root
+
+sudo chown myuser.mygroup docker-compose/certs/*
+
+sudo chown jamie.jamie docker-compose/certs/*
+
+
+---------------------------------
+Install Composer Dependancies
+---------------------------------
+cd src/
+./composer install
+
+
+
+
+Setup the env file
+-----------------------
+cd src/
+cp env.dev .env
+
+------------------------
+Start the containers
+-----------------------
+docker-compose up
+
+-------------------------------------
+Run migration from within red6six-api
+-------------------------------------
+
+# docker exec -it red6six-api bash
+$ php artisan migrate
+
+-----------------------------------
+Snapshotting the DB
+-----------------------------------
+Note: the red6six-db container will load the db from docker-compose/mysql/latest-dev.sql
+
+cd control
+./snapshot-db
+
+You can load the db with:
+
+./load-dev.sh
+
+
+REMEMBER!! IF YOU REMOVE THE CONTAINERS, THE DB WILL RELOAD FROM latest-dev.sql - make sure you snapshot it.
+
+
+
+
+
+

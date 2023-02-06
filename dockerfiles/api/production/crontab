@@ -1,0 +1,1 @@
+* * * * * sudo -u www-data bash -c ". /run/supervisord.env; date; cd /var/www/html; php artisan schedule:run"  > /proc/1/fd/1 2>/proc/1/fd/2

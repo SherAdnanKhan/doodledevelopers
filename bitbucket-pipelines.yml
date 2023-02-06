@@ -1,0 +1,93 @@
+image: atlassian/default-image:2
+
+pipelines:
+  custom:
+    build-production-containers:
+      - parallel:
+          - step:
+              name: Build API PHP/NGINX Base Docker Image
+              size: 2x
+              clone:
+                depth: 1
+              caches:
+                - docker
+              services:
+                - docker
+              script:
+                - docker login $AZURE_CR_URL -u $AZURE_CR_USERNAME -p $AZURE_CR_PASSWORD
+                - export AZURE_URI=$AZURE_CR_URL/api-php-nginx-base
+                - docker build -f dockerfiles/api/base/Dockerfile
+                              -t $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                              -t $AZURE_URI:latest .
+                - docker push $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                - docker push $AZURE_URI:latest
+                - git pull
+                - echo $BITBUCKET_BUILD_NUMBER > dockerfiles/build-no-api-base
+                - git commit -am "Bump API Base build no" || echo "Nothing to commit"
+                - git push
+          - step:
+              name: Build Frontend Nuxt Base Docker Image
+              size: 2x
+              clone:
+                depth: 1
+              caches:
+                - docker
+              services:
+                - docker
+              script:
+                - docker login $AZURE_CR_URL -u $AZURE_CR_USERNAME -p $AZURE_CR_PASSWORD
+                - export AZURE_URI=$AZURE_CR_URL/frontend-base
+                - docker build --build-arg SSH_PRIVATE_KEY=$SSH_PRIVATE_KEY
+                              -f dockerfiles/frontend/base/Dockerfile
+                              -t $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                              -t $AZURE_URI:latest .
+                - docker push $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                - docker push $AZURE_URI:latest
+                - git pull
+                - echo $BITBUCKET_BUILD_NUMBER > dockerfiles/build-no-frontend-base
+                - git commit -am "Bump Frontend Base build no" || echo "Nothing to commit"
+                - git push
+      - parallel:
+          - step:
+              name: Build API PHP/NGING Production Docker Image
+              size: 2x
+              clone:
+                depth: 3
+              caches:
+                - docker
+              services:
+                - docker
+              script:
+                - docker login $AZURE_CR_URL -u $AZURE_CR_USERNAME -p $AZURE_CR_PASSWORD
+                - export AZURE_URI=$AZURE_CR_URL/api-php-nginx-build
+                - rm -rf src/client src/env* src/*.sql
+                - git pull
+                - sed -i "s/BUILD_NO_API_BASE/$(cat dockerfiles/build-no-api-base)/g" dockerfiles/api/production/Dockerfile
+                - docker build -f dockerfiles/api/production/Dockerfile
+                              -t $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                              -t $AZURE_URI:latest .
+                - docker push $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                - docker push $AZURE_URI:latest
+          - step:
+              name: Build Frontend Nuxt Production Docker Image
+              size: 2x
+              clone:
+                depth: 3
+              caches:
+                - docker
+              services:
+                - docker
+              script:
+                - docker login $AZURE_CR_URL -u $AZURE_CR_USERNAME -p $AZURE_CR_PASSWORD
+                - export AZURE_URI=$AZURE_CR_URL/frontend-build
+                - git pull
+                - sed -i -e "s/BUILD_NO_FRONTEND_BASE/$(cat dockerfiles/build-no-frontend-base)/g" dockerfiles/frontend/production/Dockerfile
+                - docker build -f dockerfiles/frontend/production/Dockerfile
+                              -t $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                              -t $AZURE_URI:latest .
+                - docker push $AZURE_URI:$BITBUCKET_BUILD_NUMBER
+                - docker push $AZURE_URI:latest
+definitions:
+  services:
+    docker:
+      memory: 7128
